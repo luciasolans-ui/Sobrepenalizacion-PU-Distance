@@ -6,7 +6,7 @@
 --
 -- Lógica Aplicada:
 --   1. Durante (Rollout): Todos los días válidos entre la fecha de inicio y fin de la flota.
---   2. Pre-rollout: Rango fijo del 11/04/2026 al 14/05/2026 (previo al inicio de cada flota).
+--   2. Pre-rollout: Rango fijo del 26/03/2026 al 29/04/2026 (previo al inicio de cada flota).
 --   3. Post-rollout: Rango fijo del 27/07/2026 al 31/08/2026 (posterior al fin de cada flota).
 --   4. Exclusiones exactas: Se excluyen los partidos del Mundial (11/06 al 19/07, excepto 5 días
 --      de descanso: 08/07, 12/07, 13/07, 16/07, 17/07) y el Día de la Hamburguesa (28/05/2026).
@@ -83,7 +83,7 @@ all_days AS (
          AND dt NOT IN (DATE('2026-07-08'), DATE('2026-07-12'), DATE('2026-07-13'), DATE('2026-07-16'), DATE('2026-07-17')) -- Días de descanso
        )
      ) AS is_valid
-   FROM UNNEST(GENERATE_DATE_ARRAY(DATE('2026-03-27'), DATE('2026-08-31'))) AS dt
+   FROM UNNEST(GENERATE_DATE_ARRAY(DATE('2026-03-26'), DATE('2026-08-31'))) AS dt
 ),
 
 fleet_dates_mapped AS (
@@ -97,12 +97,12 @@ fleet_dates_mapped AS (
    
    UNION ALL
    
-   -- Pre-feature (Rango fijo estático del 27/03 al 30/04)
+   -- Pre-feature (Rango fijo estático del 26/03 al 29/04)
    SELECT c.fleet_id, ad.dt, 'Pre-feature' AS brazo_test
    FROM all_days ad
    CROSS JOIN rollout_calendar c
    WHERE ad.is_valid 
-     AND ad.dt BETWEEN DATE('2026-03-27') AND DATE('2026-04-30')
+     AND ad.dt BETWEEN DATE('2026-03-26') AND DATE('2026-04-29')
      AND ad.dt < c.start_date
    
    UNION ALL
@@ -136,7 +136,7 @@ rdds_sp AS (
      MAX(pickup_distance_google)          AS pu_g,
      MAX(dropoff_distance_google)         AS dof_g
    FROM `fulfillment-dwh-production.curated_data_shared.rider_payment_delivery_distance_service`
-   WHERE created_date BETWEEN '2026-03-27' AND '2026-08-31'
+   WHERE created_date BETWEEN '2026-03-26' AND '2026-08-31'
      AND country_code = 'ar'
      AND region = 'Americas'
    GROUP BY delivery_id
@@ -162,7 +162,7 @@ cpo_data_sp AS (
      basic_payment_per_km_do_lc                     AS cpo_do,     
      basic_cpo_lc + CAST(scoring_cpo_lc AS FLOAT64) AS cpo_total  
    FROM `peya-datamarts-pro.dm_cpo.overall_cpo`
-   WHERE created_date BETWEEN '2026-03-27' AND '2026-08-31'
+   WHERE created_date BETWEEN '2026-03-26' AND '2026-08-31'
      AND country_code = 'ar'
 ),
 
@@ -173,7 +173,7 @@ seamless_data_sp AS (
      created_date_local AS dt,
      MAX(CAST(non_seamless_order AS INT64)) AS non_seamless
    FROM `peya-datamarts-pro.dm_fulfillment.non_seamless_delivery_order_level`
-   WHERE created_date_local BETWEEN '2026-03-27' AND '2026-08-31'
+   WHERE created_date_local BETWEEN '2026-03-26' AND '2026-08-31'
      AND country_name = 'Argentina'
    GROUP BY oid, dt
 ),
@@ -192,8 +192,8 @@ raw_orders_sp AS (
      d.is_stacked,
      d.timings.actual_delivery_time
    FROM `peya-bi-tools-pro.il_logistics.fact_logistic_orders` lo, UNNEST(lo.deliveries) d
-   WHERE lo.created_date BETWEEN '2026-03-27' AND '2026-08-31'
-     AND lo.created_date_local BETWEEN '2026-03-27' AND '2026-08-31'
+   WHERE lo.created_date BETWEEN '2026-03-26' AND '2026-08-31'
+     AND lo.created_date_local BETWEEN '2026-03-26' AND '2026-08-31'
      AND lo.country.country_id = 3
      AND d.is_primary
      AND lo.timings.zone_stats.mean_delay IS NOT NULL
